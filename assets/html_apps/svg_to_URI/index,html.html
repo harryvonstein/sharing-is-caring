@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVG to Data URI Converter</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.2/p5.min.js"></script>
+    <style>
+        /* Custom styles if needed, Tailwind is preferred */
+        body {
+            font-family: 'Inter', sans-serif; /* Use Inter font */
+        }
+        /* Style the p5 file input */
+        input[type="file"] {
+            /* Basic styling, can be enhanced */
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.375rem; /* rounded-md */
+        }
+        /* Ensure textarea is responsive */
+        textarea {
+            width: 100%;
+            min-height: 150px; /* Minimum height */
+            resize: vertical; /* Allow vertical resizing */
+        }
+    </style>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-8 rounded-lg shadow-lg w-full max-w-2xl">
+        <h1 class="text-2xl font-bold mb-6 text-center text-gray-800">SVG to Data URI Converter</h1>
+
+        <div id="file-input-container" class="mb-4 text-center">
+            <label class="block text-gray-700 text-sm font-bold mb-2" for="fileInput">
+                Upload your SVG file:
+            </label>
+            </div>
+
+        <div id="message-area" class="mb-4 text-center text-red-500 font-medium"></div>
+
+        <div id="output-area" class="mb-4 hidden">
+             <label class="block text-gray-700 text-sm font-bold mb-2" for="dataUriOutput">
+                Data URI:
+            </label>
+            <textarea id="dataUriOutput" readonly
+                      class="w-full p-3 border border-gray-300 rounded-md bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
+            <button id="copyButton"
+                    class="mt-2 w-full bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md transition duration-300 ease-in-out">
+                Copy Data URI
+            </button>
+            <div id="copy-message" class="mt-2 text-center text-green-600 font-medium hidden">Copied!</div>
+        </div>
+
+    </div>
+
+    <script>
+        let fileInput;
+        let outputArea;
+        let dataUriOutput;
+        let messageArea;
+        let copyButton;
+        let copyMessage;
+
+        // p5.js setup function
+        function setup() {
+            // No canvas needed for this application
+            noCanvas();
+
+            // Get references to HTML elements
+            outputArea = select('#output-area');
+            dataUriOutput = select('#dataUriOutput');
+            messageArea = select('#message-area');
+            copyButton = select('#copyButton');
+            copyMessage = select('#copy-message');
+
+            // Create file input using p5.js and place it in the container
+            fileInput = createFileInput(handleFile);
+            fileInput.parent('file-input-container'); // Place it inside the div
+            fileInput.id('fileInput'); // Assign an ID for the label
+            fileInput.class('block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-gray-50 focus:outline-none p-2'); // Apply Tailwind classes
+
+            // Add event listener for the copy button
+            copyButton.mousePressed(copyToClipboard);
+        }
+
+        // Callback function when a file is selected
+        function handleFile(file) {
+            // Clear previous messages and hide output
+            messageArea.html('');
+            outputArea.addClass('hidden');
+            copyMessage.addClass('hidden');
+
+            // --- DEBUGGING --- Log the detected file type and name
+            console.log("File selected:", file.name, "| Type reported by p5.js:", file.type, "| Subtype:", file.subtype);
+
+            // --- MODIFIED CHECK ---
+            // Check if the file type is 'image/svg+xml' OR if the file name ends with '.svg' (case-insensitive)
+            const isSvgMimeType = file.type === 'image/svg+xml';
+            const isSvgExtension = file.name.toLowerCase().endsWith('.svg');
+
+            if (isSvgMimeType || isSvgExtension) {
+                console.log("Processing as SVG file:", file.name);
+
+                // Use FileReader to read the file as Data URL
+                const reader = new FileReader();
+
+                reader.onload = function(e) {
+                    // Display the result
+                    dataUriOutput.value(e.target.result); // Set textarea value
+                    outputArea.removeClass('hidden'); // Show the output area
+                    console.log("SVG converted to Data URI.");
+                };
+
+                reader.onerror = function(e) {
+                    // Handle file reading errors
+                    console.error("File reading error:", e);
+                    messageArea.html('Error reading the file.');
+                    outputArea.addClass('hidden');
+                };
+
+                // Read the file content as a Data URL
+                reader.readAsDataURL(file.file); // Access the underlying File object via file.file
+
+            } else {
+                // If the file is not recognized as an SVG by type or extension
+                console.warn("Invalid file type or extension:", file.name, file.type);
+                messageArea.html('Please upload a valid SVG file (must end with .svg)'); // Updated error message
+                outputArea.addClass('hidden');
+                // Reset the file input value using direct DOM manipulation as p5 might not expose a reset method easily
+                // This ensures the user can re-select the same file if needed after an error.
+                const inputElement = document.getElementById('fileInput');
+                if (inputElement) {
+                    inputElement.value = ''; // Clear the selected file
+                }
+            }
+        }
+
+        // Function to copy text to clipboard
+        function copyToClipboard() {
+            const textToCopy = dataUriOutput.value(); // Get text from textarea
+            navigator.clipboard.writeText(textToCopy).then(() => {
+                // Success feedback
+                console.log('Data URI copied to clipboard');
+                copyMessage.removeClass('hidden'); // Show 'Copied!' message
+                // Hide the message after a few seconds
+                setTimeout(() => {
+                    copyMessage.addClass('hidden');
+                }, 2000);
+            }).catch(err => {
+                // Error feedback
+                console.error('Failed to copy text: ', err);
+                messageArea.html('Failed to copy text.'); // Show error in main message area
+            });
+        }
+
+        // p5.js draw function - not used here, but required by p5
+        function draw() {
+            // Nothing needed here for this application
+        }
+    </script>
+</body>
+</html>

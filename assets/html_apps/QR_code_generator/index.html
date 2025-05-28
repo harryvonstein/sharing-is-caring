@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.4.0/p5.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode-generator/qrcode.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* Custom styles for a professional appearance */
+        body {
+            font-family: 'Inter', sans-serif; /* Standard professional font */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f3f4f6; /* Light gray background */
+            padding: 20px;
+            color: #1f2937; /* Dark gray text for better readability */
+        }
+        #app-container {
+            background-color: #ffffff; /* White container background */
+            padding: 32px; /* Slightly more padding */
+            border-radius: 12px; /* Less rounded corners */
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px; /* Adjusted space between elements */
+            max-width: 95%;
+            width: 420px; /* Slightly wider */
+            text-align: center;
+        }
+        h1 {
+             color: #111827; /* Darker heading color */
+             font-size: 2rem; /* Slightly smaller, more standard heading size */
+             font-weight: 600; /* Semi-bold */
+             margin-bottom: 10px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 12px 16px; /* Adjusted padding */
+            border: 1px solid #d1d5db; /* Standard border */
+            border-radius: 8px; /* Less rounded */
+            font-size: 1rem; /* Standard font size */
+            text-align: left; /* Align text to left for professional input */
+            color: #374151;
+        }
+        input[type="text"]::placeholder {
+            color: #9ca3af; /* Lighter placeholder text */
+        }
+         .control-group { /* Renamed for clarity */
+            display: flex;
+            justify-content: space-between; /* Space out controls */
+            width: 100%;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+         .control-group > div {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start; /* Align labels to the left */
+            gap: 6px;
+            flex-grow: 1; /* Allow items to grow */
+            min-width: 150px; /* Min width for better layout */
+            font-size: 0.95rem; /* Standard label font size */
+            color: #4b5563; /* Medium gray for labels */
+        }
+        input[type="color"] {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            width: 44px; /* Adjusted size */
+            height: 44px;
+            border: 1px solid #d1d5db; /* Border for color picker */
+            border-radius: 6px; /* Less rounded */
+            cursor: pointer;
+            background-color: transparent;
+            padding: 0;
+        }
+        input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 4px; /* Add some padding for the swatch */
+        }
+        input[type="color"]::-webkit-color-swatch {
+            border: none; /* Remove inner border */
+            border-radius: 4px; /* Slightly rounded swatch */
+        }
+        input[type="color"]::-moz-color-swatch-wrapper {
+            padding: 4px;
+        }
+        input[type="color"]::-moz-color-swatch {
+            border: none;
+            border-radius: 4px;
+        }
+
+         select, input[type="number"] {
+             width: 100%;
+             padding: 10px 12px; /* Adjusted padding */
+             border: 1px solid #d1d5db; /* Standard border */
+             border-radius: 8px; /* Less rounded */
+             font-size: 1rem; /* Standard font size */
+             text-align: left; /* Align text to left */
+             color: #374151;
+         }
+         input[type="number"] {
+             text-align: center; /* Keep number input centered if preferred */
+         }
+
+        button {
+            background-color: #2563eb; /* Professional blue */
+            color: white;
+            padding: 12px 24px; /* Adjusted padding */
+            border-radius: 8px; /* Less rounded */
+            font-size: 1rem; /* Standard font size */
+            font-weight: 500; /* Medium weight */
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            border: none;
+            width: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05); /* Subtle shadow */
+        }
+        button:hover {
+            background-color: #1d4ed8; /* Darker blue on hover */
+        }
+         button:active {
+             transform: translateY(1px); /* Slight press effect */
+         }
+         #saveButton {
+            background-color: #059669; /* Professional green for save/export */
+        }
+        #saveButton:hover {
+            background-color: #047857; /* Darker green on hover */
+        }
+
+        #qr-code-container {
+            margin-top: 20px;
+            border: 1px solid #e5e7eb; /* Lighter border */
+            border-radius: 8px; /* Less rounded */
+            overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05); /* Subtle shadow for container */
+        }
+        canvas {
+            display: block;
+            background-color: #ffffff;
+        }
+
+        /* Utility class for screen readers only */
+        .sr-only {
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            padding: 0;
+            margin: -1px;
+            overflow: hidden;
+            clip: rect(0, 0, 0, 0);
+            white-space: nowrap;
+            border-width: 0;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="app-container">
+        <h1>QR Code Generator</h1>
+
+        <input type="text" id="textInput" placeholder="Enter URL or text">
+
+        <div class="control-group">
+            <div>
+                <label for="fgColor">Foreground Color:</label>
+                <input type="color" id="fgColor" value="#000000"> </div>
+            <div>
+                <label for="bgColor">Background Color:</label>
+                <input type="color" id="bgColor" value="#ffffff"> </div>
+        </div>
+
+         <div class="control-group">
+            <div>
+                <label for="errorCorrection">Error Correction:</label>
+                <select id="errorCorrection">
+                    <option value="L">Low (L)</option>
+                    <option value="M" selected>Medium (M)</option> <option value="Q">Quartile (Q)</option>
+                    <option value="H">High (H)</option>
+                </select>
+            </div>
+             <div>
+                <label for="cornerRadius">Module Radius (px):</label>
+                <input type="number" id="cornerRadius" value="0" min="0" max="10"> </div>
+        </div>
+
+        <button id="saveButton">Download QR Code (SVG)</button>
+
+        <div id="qr-code-container">
+            </div>
+    </div>
+
+    <script>
+        // p5.js and QR code generation script (largely unchanged logic, but with comments and minor adjustments)
+        let qrCodeInstance; // Renamed for clarity
+        let textInputElement;
+        // let generateButtonElement; // Removed, generation is automatic
+        let saveButtonElement;
+        let fgColorInputElement;
+        let bgColorInputElement;
+        let errorCorrectionInputElement;
+        let cornerRadiusInputElement;
+
+        const qrCanvasSize = 280; // Standard canvas size
+        const quietZoneModules = 4; // Standard quiet zone
+
+        // p5.js setup function
+        function setup() {
+            // Create the canvas and parent it to the qr-code-container div
+            let canvas = createCanvas(qrCanvasSize, qrCanvasSize);
+            canvas.parent('qr-code-container');
+            noLoop(); // p5.js draw loop is not needed for static QR codes, call redraw() manually
+
+            // Get the input and button elements using p5.js select
+            textInputElement = select('#textInput');
+            // generateButtonElement = select('#generateButton'); // Button removed
+            saveButtonElement = select('#saveButton');
+            fgColorInputElement = select('#fgColor');
+            bgColorInputElement = select('#bgColor');
+            errorCorrectionInputElement = select('#errorCorrection');
+            cornerRadiusInputElement = select('#cornerRadius');
+
+            // Add event listeners
+            // generateButtonElement.mousePressed(handleGenerateQRCode); // Button removed
+            saveButtonElement.mousePressed(openSvgInNewTab);
+
+            // Generate QR code automatically on input change for a more interactive feel
+            textInputElement.input(handleGenerateQRCode);
+            fgColorInputElement.input(handleGenerateQRCode);
+            bgColorInputElement.input(handleGenerateQRCode);
+            errorCorrectionInputElement.changed(handleGenerateQRCode); // Use changed() for select elements
+            cornerRadiusInputElement.input(handleGenerateQRCode);
+
+            // Initial QR code display with placeholder or default values
+            handleGenerateQRCode(); // Generate with default/empty input on load
+        }
+
+        // Function to handle QR code generation logic
+        function handleGenerateQRCode() {
+            let data = textInputElement.value();
+            let fgColor = fgColorInputElement.value();
+            let bgColor = bgColorInputElement.value();
+            let errorCorrectionLevel = errorCorrectionInputElement.value();
+            let moduleCornerRadius = float(cornerRadiusInputElement.value()); // Get corner radius as a number
+
+            // Only generate if there's data, otherwise show a blank canvas or placeholder
+            if (data.trim() === '') {
+                background(bgColorInputElement.value()); // Show background color even if empty
+                // Optionally, display a message like "Enter data to generate QR Code"
+                // fill(150); textAlign(CENTER, CENTER); textSize(16);
+                // text("Enter data to generate QR Code", qrCanvasSize / 2, qrCanvasSize / 2);
+                redraw(); // Ensure canvas updates
+                return;
+            }
+            displayQRCodeOnCanvas(data, fgColor, bgColor, errorCorrectionLevel, moduleCornerRadius);
+        }
+
+        // Function to display the QR code on the p5.js canvas
+        function displayQRCodeOnCanvas(data, fgColor, bgColor, errorCorrection, cornerRadius) {
+            // Create a new QR code object
+            qrCodeInstance = qrcode(0, errorCorrection); // typeNumber 0 for auto sizing
+            try {
+                qrCodeInstance.addData(data);
+                qrCodeInstance.make();
+            } catch (e) {
+                console.error("Error generating QR code for canvas:", e);
+                background(bgColor); // Clear canvas with background color on error
+                // Optionally display an error message on canvas
+                // fill(fgColor); textAlign(CENTER, CENTER); textSize(14);
+                // text("Error: Too much data or invalid input.", qrCanvasSize / 2, qrCanvasSize / 2);
+                redraw();
+                return;
+            }
+
+            let moduleCount = qrCodeInstance.getModuleCount();
+            // Calculate the total size including the quiet zone
+            let totalModules = moduleCount + 2 * quietZoneModules;
+            let moduleDrawSize = qrCanvasSize / totalModules; // Size of each module on canvas
+
+            background(bgColor); // Set background color for the entire canvas (includes quiet zone)
+
+            // Loop through the QR code modules and draw them
+            for (let r = 0; r < moduleCount; r++) {
+                for (let c = 0; c < moduleCount; c++) {
+                    if (qrCodeInstance.isDark(r, c)) {
+                        fill(fgColor);
+                    } else {
+                        fill(bgColor); // Explicitly fill light modules with background color
+                    }
+                    noStroke(); // No border for the modules for a cleaner look
+
+                    // Calculate position including quiet zone offset
+                    let xPos = (c + quietZoneModules) * moduleDrawSize;
+                    let yPos = (r + quietZoneModules) * moduleDrawSize;
+
+                    // Apply corner radius, ensuring it doesn't exceed half the module size
+                    let effectiveRadius = min(cornerRadius, moduleDrawSize / 2);
+                    rect(xPos, yPos, moduleDrawSize, moduleDrawSize, effectiveRadius);
+                }
+            }
+            redraw(); // Manually trigger p5.js redraw
+        }
+
+        // Function to generate and open the QR code as SVG in a new tab
+        function openSvgInNewTab() {
+            let data = textInputElement.value();
+            if (!data.trim()) {
+                // Optionally, show a message to the user that data is required.
+                // For now, just log and return.
+                console.log("No data provided for SVG export.");
+                alert("Please enter some text or URL to generate a QR code first.");
+                return;
+            }
+
+            let fgColor = fgColorInputElement.value();
+            let bgColor = bgColorInputElement.value();
+            let errorCorrectionLevel = errorCorrectionInputElement.value();
+            let moduleCornerRadius = float(cornerRadiusInputElement.value());
+
+            // Create a new QR code object specifically for SVG generation
+            let qrCodeForSvg = qrcode(0, errorCorrectionLevel);
+            try {
+                qrCodeForSvg.addData(data);
+                qrCodeForSvg.make();
+            } catch (e) {
+                console.error("Error generating QR code for SVG:", e);
+                alert("Could not generate SVG: " + e.message);
+                return;
+            }
+
+            let moduleCount = qrCodeForSvg.getModuleCount();
+            let totalModules = moduleCount + 2 * quietZoneModules;
+            // Define a base module size for SVG for good resolution, e.g., 10px per module
+            let svgModulePixelSize = 10;
+            let svgImageSize = totalModules * svgModulePixelSize;
+
+            // Start building the SVG string
+            let svgString = `<svg width="${svgImageSize}" height="${svgImageSize}" viewBox="0 0 ${svgImageSize} ${svgImageSize}" xmlns="http://www.w3.org/2000/svg" style="shape-rendering: crispEdges;">`;
+
+            // Add background rectangle for the entire SVG (including quiet zone)
+            svgString += `<rect width="${svgImageSize}" height="${svgImageSize}" fill="${bgColor}"/>`;
+
+            // Add the QR code modules
+            for (let r = 0; r < moduleCount; r++) {
+                for (let c = 0; c < moduleCount; c++) {
+                    let xPos = (c + quietZoneModules) * svgModulePixelSize;
+                    let yPos = (r + quietZoneModules) * svgModulePixelSize;
+
+                    if (qrCodeForSvg.isDark(r, c)) {
+                        // Scale corner radius for SVG based on the input value and module size
+                        // The input 'moduleCornerRadius' is more of a conceptual value (0-10)
+                        // Let's map it to a percentage of the module size for SVG
+                        let svgCornerRadiusValue = (moduleCornerRadius / 10) * (svgModulePixelSize / 2);
+                        svgCornerRadiusValue = min(svgCornerRadiusValue, svgModulePixelSize / 2); // Cap at half module size
+
+                        svgString += `<rect x="${xPos}" y="${yPos}" width="${svgModulePixelSize}" height="${svgModulePixelSize}" fill="${fgColor}" rx="${svgCornerRadiusValue}" ry="${svgCornerRadiusValue}"/>`;
+                    }
+                    // Light modules are implicitly covered by the background rectangle
+                }
+            }
+
+            svgString += `</svg>`;
+
+            // Create a Blob from the SVG string
+            const blob = new Blob([svgString], { type: 'image/svg+xml' });
+            const url = URL.createObjectURL(blob);
+
+            // Create a temporary link to trigger download
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'qrcode.svg'; // Suggested filename
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+
+            // Clean up the object URL
+            URL.revokeObjectURL(url);
+        }
+
+        // The main p5.js draw function is called once by redraw() when needed.
+        function draw() {
+            // Drawing logic is now within displayQRCodeOnCanvas and called via handleGenerateQRCode
+        }
+
+    </script>
+
+</body>
+</html>
